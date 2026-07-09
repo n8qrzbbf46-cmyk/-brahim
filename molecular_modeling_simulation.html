@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧬 AMPL Moleküler Modelleme Simülasyonu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&amp;family=Space+Grotesk:wght@500;600&amp;display=swap');
+        
+        :root {
+            --primary: #0ea5e9;
+        }
+        
+        body {
+            font-family: 'Inter', system_ui, sans-serif;
+        }
+        
+        .font-display {
+            font-family: 'Space Grotesk', 'Inter', sans-serif;
+            font-weight: 600;
+        }
+
+        .section-header {
+            background: linear-gradient(90deg, #0ea5e9, #0284c8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .molecule-bg {
+            background-image: url('data:image/svg+xml,%3Csvg width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg fill-rule=%22evenodd%22%3E%3Cpath fill=%22%230ea5e920%22 d=%22M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-10V8h-2v16h-4v2h4v4h2v-4h4v-2h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 6v-4H4v4H0v2h4v4h2V8h4V6H6z%22/%3E%3C/g%3E%3C/svg%27');
+            background-size: 60px 60px;
+        }
+
+        .chromosome {
+            display: flex;
+            gap: 2px;
+            flex-wrap: wrap;
+        }
+        
+        .bit {
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: 700;
+            color: white;
+            border-radius: 3px;
+            transition: all 0.2s ease;
+        }
+        
+        .bit-0 { background-color: #64748b; }
+        .bit-1 { background-color: #22c55e; }
+        
+        .ga-log {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 0.75rem;
+        }
+
+        .feature-bar {
+            transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .simulation-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .simulation-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+
+        .nav-active {
+            background-color: #0ea5e9;
+            color: white;
+            border-radius: 9999px;
+        }
+
+        .metric-value {
+            font-variant-numeric: tabular-nums;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200">
+    <!-- Navbar -->
+    <nav class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-x-3">
+                    <div class="w-11 h-11 bg-sky-500 rounded-2xl flex items-center justify-center shadow-inner">
+                        <i class="fa-solid fa-atom text-white text-3xl"></i>
+                    </div>
+                    <div>
+                        <span class="font-display text-3xl font-semibold tracking-tighter">AMPL</span>
+                        <span class="text-sky-400 text-xl font-medium">Sim</span>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-x-2 text-sm">
+                    <div class="px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-3xl flex items-center gap-x-2 text-xs">
+                        <div class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                        <span class="text-emerald-400 font-medium">Canlı Simülasyon</span>
+                    </div>
+                    <div class="text-slate-400 text-xs px-3 py-1 bg-slate-900 border border-slate-700 rounded-3xl">
+                        v1.0 • Eğitim Amaçlı
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-6 pt-8 pb-12">
+        <!-- Hero -->
+        <div class="text-center mb-10">
+            <div class="inline-flex items-center gap-x-2 px-4 py-1.5 rounded-3xl bg-slate-900 border border-slate-700 mb-4">
+                <i class="fa-solid fa-flask text-sky-400"></i>
+                <span class="text-sm font-medium text-sky-300">ATOM • DeepChem • RDKit • Mordred</span>
+            </div>
+            <h1 class="text-6xl font-display tracking-tighter font-semibold mb-3">Moleküler Modelleme<br>Simülasyon Laboratuvarı</h1>
+            <p class="max-w-2xl mx-auto text-xl text-slate-400">
+                featurization.py, feature_importance.py ve GeneticAlgorithm.py dosyalarından esinlenerek hazırlanmış 
+                interaktif web simülasyonu. Makine öğrenmesi ve genetik algoritma kavramlarını keşfet.
+            </p>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+            <div class="bg-slate-900 border border-slate-700 rounded-3xl p-5">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-xs uppercase tracking-widest text-slate-500">Modüller</div>
+                        <div class="text-4xl font-semibold mt-1">4</div>
+                    </div>
+                    <i class="fa-solid fa-cubes text-4xl text-sky-500/30"></i>
+                </div>
+            </div>
+            <div class="bg-slate-900 border border-slate-700 rounded-3xl p-5">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-xs uppercase tracking-widest text-slate-500">Özellikler</div>
+                        <div class="text-4xl font-semibold mt-1">2000+</div>
+                    </div>
+                    <i class="fa-solid fa-fingerprint text-4xl text-emerald-500/30"></i>
+                </div>
+            </div>
+            <div class="bg-slate-900 border border-slate-700 rounded-3xl p-5">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-xs uppercase tracking-widest text-slate-500">Algoritma</div>
+                        <div class="text-4xl font-semibold mt-1">GA</div>
+                    </div>
+                    <i class="fa-solid fa-dna text-4xl text-violet-500/30"></i>
+                </div>
+            </div>
+            <div class="bg-slate-900 border border-slate-700 rounded-3xl p-5">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-xs uppercase tracking-widest text-slate-500">Durum</div>
+                        <div class="flex items-center gap-x-2 mt-1">
+                            <div class="px-3 py-0.5 text-xs font-medium bg-emerald-900 text-emerald-300 rounded-2xl">Hazır</div>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-check-circle text-4xl text-emerald-500/30"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex border-b border-slate-700 mb-6">
+            <button onclick="switchTab(0)" class="tab-button active px-6 py-3 text-sm font-medium flex items-center gap-x-2 border-b-2 border-sky-500 text-sky-400" id="tab-0">
+                <i class="fa-solid fa-dna"></i>
+                <span>Genetik Algoritma</span>
+            </button>
+            <button onclick="switchTab(1)" class="tab-button px-6 py-3 text-sm font-medium flex items-center gap-x-2 text-slate-400 hover:text-slate-200" id="tab-1">
+                <i class="fa-solid fa-chart-bar"></i>
+                <span>Özellik Önem Analizi</span>
+            </button>
+            <button onclick="switchTab(2)" class="tab-button px-6 py-3 text-sm font-medium flex items-center gap-x-2 text-slate-400 hover:text-slate-200" id="tab-2">
+                <i class="fa-solid fa-atom"></i>
+                <span>Featurizasyon Demo</span>
+            </button>
+        </div>
+
+        <!-- TAB 0: Genetic Algorithm Simulator -->
+        <div id="tab-content-0" class="tab-content">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <!-- Controls -->
+                <div class="lg:col-span-5 bg-slate-900 border border-slate-700 rounded-3xl p-6 simulation-card">
+                    <div class="flex items-center justify-between mb-5">
+                        <div>
+                            <h3 class="font-semibold text-xl flex items-center gap-x-2">
+                                <i class="fa-solid fa-dna text-sky-400"></i> 
+                                Genetik Algoritma
+                            </h3>
+                            <p class="text-xs text-slate-400 mt-0.5">GeneticAlgorithm.py'den uyarlanmıştır</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-5">
+                        <!-- Parameters -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs font-medium text-slate-400 block mb-1.5">Popülasyon Boyutu</label>
+                                <div class="flex items-center gap-x-3">
+                                    <input type="range" id="popSize" min="10" max="200" step="10" value="60" 
+                                           class="flex-1 accent-sky-500" oninput="updateParamLabel(this, 'popSizeVal')">
+                                    <span id="popSizeVal" class="font-mono w-9 text-right text-sm">60</span>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="text-xs font-medium text-slate-400 block mb-1.5">Kromozom Uzunluğu</label>
+                                <div class="flex items-center gap-x-3">
+                                    <input type="range" id="chromLength" min="8" max="40" step="2" value="20" 
+                                           class="flex-1 accent-sky-500" oninput="updateParamLabel(this, 'chromLengthVal')">
+                                    <span id="chromLengthVal" class="font-mono w-9 text-right text-sm">20</span>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="text-xs font-medium text-slate-400 block mb-1.5">Mutasyon Oranı</label>
+                                <div class="flex items-center gap-x-3">
+                                    <input type="range" id="mutationRate" min="0.001" max="0.15" step="0.001" value="0.02" 
+                                           class="flex-1 accent-sky-500" oninput="updateParamLabel(this, 'mutationRateVal', true)">
+                                    <span id="mutationRateVal" class="font-mono w-12 text-right text-sm">0.020</span>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="text-xs font-medium text-slate-400 block mb-1.5">Nesil Sayısı</label>
+                                <div class="flex items-center gap-x-3">
+                                    <input type="range" id="numGenerations" min="10" max="150" step="5" value="60" 
+                                           class="flex-1 accent-sky-500" oninput="updateParamLabel(this, 'numGenerationsVal')">
+                                    <span id="numGenerationsVal" class="font-mono w-9 text-right text-sm">60</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="text-xs font-medium text-slate-400 block mb-1.5">Hedef Kromozom (İdeal Molekül)</label>
+                            <div class="flex gap-x-2">
+                                <button onclick="generateRandomTarget()" 
+                                        class="flex-1 text-xs bg-slate-800 hover:bg-slate-700 transition-colors px-4 py-2.5 rounded-2xl border border-slate-700 text-slate-300 flex items-center justify-center gap-x-2">
+                                    <i class="fa-solid fa-sync text-xs"></i>
+                                    <span>Rastgele Oluştur</span>
+                                </button>
+                                <button onclick="setDefaultTarget()" 
+                                        class="flex-1 text-xs bg-slate-800 hover:bg-slate-700 transition-colors px-4 py-2.5 rounded-2xl border border-slate-700 text-slate-300 flex items-center justify-center gap-x-2">
+                                    <span>Varsayılan</span>
+                                </button>
+                            </div>
+                            <div id="targetDisplay" class="mt-3 p-3 bg-slate-950 border border-slate-700 rounded-2xl text-xs font-mono flex flex-wrap gap-1 min-h-[42px]"></div>
+                        </div>
+
+                        <div class="pt-2">
+                            <button onclick="runGeneticAlgorithm()" 
+                                    class="w-full py-3.5 bg-sky-500 hover:bg-sky-600 active:bg-sky-700 transition-all text-white font-semibold rounded-3xl flex items-center justify-center gap-x-3 text-sm shadow-lg shadow-sky-500/30">
+                                <i class="fa-solid fa-play"></i>
+                                <span>SİMÜLASYONU BAŞLAT</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Stats & Visualization -->
+                <div class="lg:col-span-7 bg-slate-900 border border-slate-700 rounded-3xl p-6 simulation-card flex flex-col">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <h4 class="font-semibold">Canlı İstatistikler</h4>
+                            <p id="statusText" class="text-xs text-emerald-400">Hazır • Simülasyon bekleniyor</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs text-slate-400">En İyi Fitness</div>
+                            <div id="bestFitness" class="font-mono text-3xl font-semibold text-emerald-400 metric-value">0.000</div>
+                        </div>
+                    </div>
+
+                    <!-- Fitness Chart -->
+                    <div class="flex-1 min-h-[210px] mb-4 bg-slate-950 border border-slate-700 rounded-2xl p-3">
+                        <canvas id="fitnessChart"></canvas>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-3 text-center">
+                        <div class="bg-slate-950 border border-slate-700 rounded-2xl p-3">
+                            <div class="text-xs text-slate-400">Mevcut Nesil</div>
+                            <div id="currentGen" class="font-mono text-2xl font-semibold">0 / 60</div>
+                        </div>
+                        <div class="bg-slate-950 border border-slate-700 rounded-2xl p-3">
+                            <div class="text-xs text-slate-400">Popülasyon</div>
+                            <div id="currentPop" class="font-mono text-2xl font-semibold">60</div>
+                        </div>
+                        <div class="bg-slate-950 border border-slate-700 rounded-2xl p-3">
+                            <div class="text-xs text-slate-400">En İyi Benzerlik</div>
+                            <div id="bestSimilarity" class="font-mono text-2xl font-semibold text-emerald-400">0%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Best Chromosome -->
+                <div class="lg:col-span-12 bg-slate-900 border border-slate-700 rounded-3xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="font-semibold flex items-center gap-x-2">
+                            <i class="fa-solid fa-trophy text-amber-400"></i>
+                            <span>En İyi Çözüm (Kromozom)</span>
+                        </div>
+                        <div id="bestFitnessLabel" class="px-3 py-1 text-xs font-medium bg-emerald-900 text-emerald-300 rounded-3xl flex items-center gap-x-1.5">
+                            <i class="fa-solid fa-check text-xs"></i>
+                            <span>Fitness: <span id="bestFitnessSmall">0.000</span></span>
+                        </div>
+                    </div>
+                    
+                    <div id="bestChromosomeViz" class="chromosome bg-slate-950 border border-slate-700 p-4 rounded-2xl min-h-[54px] flex items-center justify-center gap-1 flex-wrap"></div>
+                    
+                    <div class="mt-3 text-xs text-slate-400 flex items-center gap-x-2">
+                        <i class="fa-solid fa-info-circle"></i>
+                        <span>Yeşil = 1 (aktif özellik), Gri = 0 (pasif özellik). Hedef moleküle ne kadar yakınsa o kadar iyi.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 1: Feature Importance -->
+        <div id="tab-content-1" class="tab-content hidden">
+            <div class="bg-slate-900 border border-slate-700 rounded-3xl p-7">
+                <div class="mb-6">
+                    <h3 class="font-semibold text-2xl">Permütasyon Özellik Önemi Simülasyonu</h3>
+                    <p class="text-slate-400 text-sm mt-1">feature_importance.py'deki permutation_feature_importance mantığını simüle eder. Özellikleri karıştırdığınızda model performansının nasıl düştüğünü görün.</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                    <div class="lg:col-span-3">
+                        <div class="mb-3 flex items-center justify-between text-xs uppercase tracking-wider text-slate-400 px-1">
+                            <div>Özellikler (Mordred + RDKit)</div>
+                            <div>Önem Skoru</div>
+                        </div>
+                        
+                        <div id="featureList" class="space-y-2 max-h-[380px] overflow-auto pr-2"></div>
+                    </div>
+                    
+                    <div class="lg:col-span-2 bg-slate-950 border border-slate-700 rounded-3xl p-5">
+                        <div class="text-sm font-medium mb-3">Model Performansı</div>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <div class="flex justify-between text-xs mb-1.5">
+                                    <span>Baseline (orijinal)</span>
+                                    <span id="baselineScore" class="font-mono">0.87</span>
+                                </div>
+                                <div class="h-2.5 bg-slate-700 rounded-full overflow-hidden">
+                                    <div class="h-2.5 bg-emerald-400 rounded-full w-[87%]" style="width: 87%"></div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <div class="flex justify-between text-xs mb-1.5">
+                                    <span>Permütasyon sonrası</span>
+                                    <span id="permutedScore" class="font-mono text-rose-400">0.87</span>
+                                </div>
+                                <div class="h-2.5 bg-slate-700 rounded-full overflow-hidden">
+                                    <div id="permutedBar" class="h-2.5 bg-rose-400 rounded-full transition-all" style="width: 87%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <button onclick="runPermutationSimulation()" 
+                                    class="w-full py-2.5 text-sm bg-violet-600 hover:bg-violet-500 active:bg-violet-700 transition-colors text-white font-medium rounded-3xl flex items-center justify-center gap-x-2">
+                                <i class="fa-solid fa-random"></i>
+                                <span>SEÇİLİ ÖZELLİKLERİ PERMÜTE ET</span>
+                            </button>
+                            
+                            <button onclick="resetFeatureImportance()" 
+                                    class="mt-2 w-full py-2 text-xs text-slate-400 hover:text-slate-200 transition-colors">
+                                Sıfırla
+                            </button>
+                        </div>
+                        
+                        <div class="mt-5 text-[10px] text-slate-500 leading-tight">
+                            Not: Gerçek permutation importance, her özelliği sırayla karıştırıp model skorundaki düşüşü ölçer. Bu simülasyon benzer mantığı göstermektedir.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: Featurization Demo -->
+        <div id="tab-content-2" class="tab-content hidden">
+            <div class="bg-slate-900 border border-slate-700 rounded-3xl p-7">
+                <div class="mb-6">
+                    <h3 class="font-semibold text-2xl">Featurizasyon Demo</h3>
+                    <p class="text-slate-400">featurization.py ve ComputedDescriptorFeaturization mantığını temel alan basit bir demo. Gerçek kimyasal hesaplama yerine eğitici simülasyon.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <div class="mb-3">
+                            <label class="text-xs font-medium text-slate-400">SMILES (veya basit molekül tanımı)</label>
+                            <input id="smilesInput" type="text" value="CCO" placeholder="CCO veya herhangi bir SMILES"
+                                   class="mt-1.5 w-full bg-slate-950 border border-slate-700 focus:border-sky-500 transition-colors rounded-2xl px-4 py-3 text-sm font-mono">
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-xs font-medium text-slate-400">Ağır Atom Sayısı</label>
+                                <input id="heavyAtoms" type="number" value="3" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-2.5 text-sm">
+                            </div>
+                            <div>
+                                <label class="text-xs font-medium text-slate-400">Bağ Sayısı</label>
+                                <input id="bondCount" type="number" value="2" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-2.5 text-sm">
+                            </div>
+                        </div>
+                        
+                        <button onclick="computeDescriptors()" 
+                                class="mt-4 w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold rounded-3xl flex items-center justify-center gap-x-2">
+                            <i class="fa-solid fa-calculator"></i>
+                            <span>DESKRİPTÖRLERİ HESAPLA</span>
+                        </button>
+                    </div>
+                    
+                    <div class="bg-slate-950 border border-slate-700 rounded-3xl p-5">
+                        <div class="uppercase text-xs tracking-widest text-emerald-400 mb-3 px-1">Hesaplanan Özellikler</div>
+                        <div id="descriptorResults" class="space-y-px text-sm"></div>
+                        
+                        <div class="mt-4 pt-4 border-t border-slate-700 text-xs text-slate-500">
+                            Gerçek hayatta RDKit, Mordred ve DeepChem kullanılır. Bu demo basit matematiksel simülasyon yapar.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer info -->
+        <div class="mt-10 text-center">
+            <div class="inline-flex items-center gap-x-2 text-xs text-slate-500">
+                <span>Bu simülasyon ATOM Modeling Pipeline (AMPL) eğitim amaçlı hazırlanmıştır.</span>
+                <span class="px-2">•</span>
+                <span>Kaynak: featurization.py • feature_importance.py • GeneticAlgorithm.py • parameter_parser.py</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tailwind script
+        function initializeTailwind() {
+            document.documentElement.style.setProperty('--accent', '#0ea5e9');
+        }
+        
+        let currentTab = 0;
+        
+        function switchTab(tabIndex) {
+            // Hide all
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-button').forEach(el => {
+                el.classList.remove('active', 'border-b-2', 'border-sky-500', 'text-sky-400');
+                el.classList.add('text-slate-400');
+            });
+            
+            // Show selected
+            document.getElementById(`tab-content-${tabIndex}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-${tabIndex}`);
+            activeBtn.classList.add('active', 'border-b-2', 'border-sky-500', 'text-sky-400');
+            activeBtn.classList.remove('text-slate-400');
+            
+            currentTab = tabIndex;
+        }
+        
+        function updateParamLabel(slider, labelId, isFloat = false) {
+            const label = document.getElementById(labelId);
+            if (isFloat) {
+                label.textContent = parseFloat(slider.value).toFixed(3);
+            } else {
+                label.textContent = slider.value;
+            }
+        }
+        
+        // ==================== GENETIC ALGORITHM ====================
+        let gaChart = null;
+        let currentTarget = [];
+        let bestSolutionGlobal = null;
+        
+        function generateRandomTarget() {
+            const length = parseInt(document.getElementById('chromLength').value);
+            currentTarget = Array.from({length}, () => Math.random() > 0.5 ? 1 : 0);
+            renderTarget();
+        }
+        
+        function setDefaultTarget() {
+            const length = parseInt(document.getElementById('chromLength').value);
+            // Create a nice default pattern (alternating with some 1s)
+            currentTarget = [];
+            for (let i = 0; i < length; i++) {
+                currentTarget.push( (i % 3 === 0 || i % 5 === 1) ? 1 : 0 );
+            }
+            renderTarget();
+        }
+        
+        function renderTarget() {
+            const container = document.getElementById('targetDisplay');
+            container.innerHTML = '';
+            
+            if (!currentTarget || currentTarget.length === 0) {
+                container.innerHTML = `<span class="text-slate-500 text-xs px-2">Henüz hedef oluşturulmadı</span>`;
+                return;
+            }
+            
+            currentTarget.forEach((bit, idx) => {
+                const div = document.createElement('div');
+                div.className = `bit bit-${bit} text-[8px]`;
+                div.textContent = bit;
+                div.title = `Pozisyon ${idx}`;
+                container.appendChild(div);
+            });
+        }
+        
+        function rogerstanimotoDistance(a, b) {
+            let both1 = 0, a1b0 = 0, a0b1 = 0;
+            for (let i = 0; i < a.length; i++) {
+                if (a[i] === 1 && b[i] === 1) both1++;
+                else if (a[i] === 1 && b[i] === 0) a1b0++;
+                else if (a[i] === 0 && b[i] === 1) a0b1++;
+            }
+            const denominator = both1 + 2 * (a1b0 + a0b1);
+            return denominator === 0 ? 0 : (a1b0 + a0b1) / denominator;
+        }
+        
+        function fitnessFunction(chromosome, target) {
+            const dist = rogerstanimotoDistance(chromosome, target);
+            return 1 - dist; // Higher is better
+        }
+        
+        function crossover(parents, popSize, randomState) {
+            const newPop = [];
+            const numParents = parents.length;
+            
+            for (let i = 0; i < popSize; i++) {
+                const p1 = parents[i % numParents];
+                const p2 = parents[(i + 1) % numParents];
+                
+                const crossoverPoint = Math.floor(Math.random() * (p1.length - 1)) + 1;
+                const child = p1.slice(0, crossoverPoint).concat(p2.slice(crossoverPoint));
+                newPop.push(child);
+            }
+            return newPop;
+        }
+        
+        function mutate(pop, mutationRate) {
+            return pop.map(chrom => {
+                return chrom.map(gene => {
+                    if (Math.random() < mutationRate) {
+                        return gene === 0 ? 1 : 0;
+                    }
+                    return gene;
+                });
+            });
+        }
+        
+        function runGeneticAlgorithm() {
+            const popSize = parseInt(document.getElementById('popSize').value);
+            const chromLength = parseInt(document.getElementById('chromLength').value);
+            const mutationRate = parseFloat(document.getElementById('mutationRate').value);
+            const numGenerations = parseInt(document.getElementById('numGenerations').value);
+            
+            if (!currentTarget || currentTarget.length !== chromLength) {
+                // Auto generate if not set
+                currentTarget = Array.from({length: chromLength}, () => Math.random() > 0.5 ? 1 : 0);
+                renderTarget();
+            }
+            
+            // Initialize population
+            let population = [];
+            for (let i = 0; i < popSize; i++) {
+                population.push(Array.from({length: chromLength}, () => Math.random() > 0.5 ? 1 : 0));
+            }
+            
+            // Reset chart
+            if (gaChart) {
+                gaChart.destroy();
+                gaChart = null;
+            }
+            
+            const ctx = document.getElementById('fitnessChart').getContext('2d');
+            const fitnessHistory = [];
+            const labels = [];
+            
+            gaChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'En İyi Fitness',
+                        data: fitnessHistory,
+                        borderColor: '#22c55e',
+                        borderWidth: 3,
+                        tension: 0.3,
+                        fill: false,
+                        pointRadius: 0,
+                        pointHoverRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: '#334155' }, ticks: { color: '#64748b', font: {size: 10} } },
+                        y: { min: 0, max: 1, grid: { color: '#334155' }, ticks: { color: '#64748b', font: {size: 10}, stepSize: 0.2 } }
+                    }
+                }
+            });
+            
+            let bestFitness = -1;
+            let bestChrom = null;
+            let generation = 0;
+            
+            const statusEl = document.getElementById('statusText');
+            const bestFitEl = document.getElementById('bestFitness');
+            const currentGenEl = document.getElementById('currentGen');
+            const bestSimEl = document.getElementById('bestSimilarity');
+            const bestChromViz = document.getElementById('bestChromosomeViz');
+            
+            statusEl.innerHTML = `<span class="text-emerald-400">Çalışıyor...</span>`;
+            bestFitEl.textContent = '0.000';
+            bestSimEl.textContent = '0%';
+            
+            function stepGeneration() {
+                // Grade population
+                let scoredPop = population.map(chrom => ({
+                    chrom: chrom,
+                    score: fitnessFunction(chrom, currentTarget)
+                }));
+                
+                // Sort descending
+                scoredPop.sort((a, b) => b.score - a.score);
+                
+                // Update best
+                if (scoredPop[0].score > bestFitness) {
+                    bestFitness = scoredPop[0].score;
+                    bestChrom = [...scoredPop[0].chrom];
+                    bestSolutionGlobal = bestChrom;
+                }
+                
+                // Update UI
+                bestFitEl.textContent = bestFitness.toFixed(3);
+                bestSimEl.textContent = (bestFitness * 100).toFixed(1) + '%';
+                currentGenEl.textContent = `${generation} / ${numGenerations}`;
+                
+                // Update chart
+                labels.push(generation);
+                fitnessHistory.push(bestFitness);
+                if (gaChart) {
+                    gaChart.update();
+                }
+                
+                // Render best chromosome
+                renderBestChromosome(bestChrom, bestChromViz, bestFitness);
+                
+                // Check if done
+                if (generation >= numGenerations) {
+                    statusEl.innerHTML = `<span class="text-emerald-400 font-medium">Tamamlandı! 🎉</span>`;
+                    document.getElementById('bestFitnessSmall').textContent = bestFitness.toFixed(3);
+                    
+                    // Show final message
+                    setTimeout(() => {
+                        if (bestFitness > 0.85) {
+                            statusEl.innerHTML = `<span class="text-emerald-400">Mükemmel çözüm bulundu!</span>`;
+                        }
+                    }, 600);
+                    return;
+                }
+                
+                // Select parents (top 50%)
+                const numParents = Math.floor(popSize / 2);
+                const parents = scoredPop.slice(0, numParents).map(p => p.chrom);
+                
+                // Crossover
+                let newPop = crossover(parents, popSize);
+                
+                // Mutate
+                newPop = mutate(newPop, mutationRate);
+                
+                population = newPop;
+                generation++;
+                
+                // Continue
+                setTimeout(stepGeneration, 65); // ~15 generations per second
+            }
+            
+            // Start
+            stepGeneration();
+        }
+        
+        function renderBestChromosome(chrom, container, fitness) {
+            container.innerHTML = '';
+            if (!chrom) return;
+            
+            chrom.forEach((bit, i) => {
+                const el = document.createElement('div');
+                el.className = `bit bit-${bit} shadow-sm`;
+                el.textContent = bit;
+                el.title = `Gen ${i}: ${bit}`;
+                container.appendChild(el);
+            });
+        }
+        
+        function updateParamLabels() {
+            // Initialize all range labels
+            const ranges = [
+                {id: 'popSize', label: 'popSizeVal', isFloat: false},
+                {id: 'chromLength', label: 'chromLengthVal', isFloat: false},
+                {id: 'mutationRate', label: 'mutationRateVal', isFloat: true},
+                {id: 'numGenerations', label: 'numGenerationsVal', isFloat: false}
+            ];
+            
+            ranges.forEach(r => {
+                const slider = document.getElementById(r.id);
+                const label = document.getElementById(r.label);
+                if (slider && label) {
+                    if (r.isFloat) {
+                        label.textContent = parseFloat(slider.value).toFixed(3);
+                    } else {
+                        label.textContent = slider.value;
+                    }
+                    
+                    // live update
+                    slider.oninput = () => {
+                        if (r.isFloat) label.textContent = parseFloat(slider.value).toFixed(3);
+                        else label.textContent = slider.value;
+                    };
+                }
+            });
+        }
+        
+        // ==================== FEATURE IMPORTANCE ====================
+        let featureData = [
+            {name: "MolWt", importance: 0.87, desc: "Molekül ağırlığı"},
+            {name: "LogP", importance: 0.79, desc: "Yağda çözünürlük"},
+            {name: "TPSA", importance: 0.71, desc: "Topolojik polar yüzey alanı"},
+            {name: "NumHDonors", importance: 0.64, desc: "H-bağı verici sayısı"},
+            {name: "NumHAcceptors", importance: 0.59, desc: "H-bağı alıcı sayısı"},
+            {name: "HeavyAtomCount", importance: 0.54, desc: "Ağır atom sayısı"},
+            {name: "NumRotatableBonds", importance: 0.48, desc: "Dönebilen bağ sayısı"},
+            {name: "RingCount", importance: 0.41, desc: "Halka sayısı"},
+            {name: "FractionCSP3", importance: 0.37, desc: "sp3 karbon fraksiyonu"},
+            {name: "qed", importance: 0.29, desc: "İlaç benzerliği skoru (QED)"}
+        ];
+        
+        function renderFeatureImportanceList() {
+            const container = document.getElementById('featureList');
+            container.innerHTML = '';
+            
+            featureData.forEach((feat, idx) => {
+                const div = document.createElement('div');
+                div.className = `flex items-center justify-between gap-x-4 px-4 py-3 bg-slate-800 border border-slate-700 hover:border-slate-600 rounded-2xl transition-all`;
+                div.innerHTML = `
+                    <div class="flex items-center gap-x-3 flex-1 min-w-0">
+                        <input type="checkbox" checked data-idx="${idx}" class="accent-sky-500 w-4 h-4">
+                        <div class="min-w-0">
+                            <div class="font-medium text-sm">${feat.name}</div>
+                            <div class="text-[10px] text-slate-400 truncate">${feat.desc}</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-x-3 w-40">
+                        <div class="flex-1 h-2 bg-slate-700 rounded-full overflow-hidden">
+                            <div class="feature-bar h-2 bg-sky-400 rounded-full" style="width: ${feat.importance * 100}%"></div>
+                        </div>
+                        <div class="font-mono text-xs w-9 text-right text-sky-300">${feat.importance.toFixed(2)}</div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+            
+            // Store baseline
+            document.getElementById('baselineScore').textContent = '0.87';
+        }
+        
+        function runPermutationSimulation() {
+            const checkboxes = document.querySelectorAll('#featureList input[type="checkbox"]');
+            const selectedIndices = [];
+            
+            checkboxes.forEach((cb, i) => {
+                if (cb.checked) selectedIndices.push(parseInt(cb.dataset.idx));
+            });
+            
+            if (selectedIndices.length === 0) {
+                alert("Lütfen en az bir özellik seçin!");
+                return;
+            }
+            
+            // Simulate performance drop
+            let totalImportance = 0;
+            selectedIndices.forEach(i => totalImportance += featureData[i].importance);
+            
+            const drop = Math.min(0.65, totalImportance * 0.75); // simulated drop
+            const newScore = Math.max(0.15, 0.87 - drop);
+            
+            // Update UI
+            document.getElementById('permutedScore').textContent = newScore.toFixed(2);
+            document.getElementById('permutedBar').style.width = `${newScore * 100}%`;
+            
+            // Briefly highlight permuted features
+            const rows = document.querySelectorAll('#featureList > div');
+            rows.forEach((row, idx) => {
+                const cb = row.querySelector('input');
+                if (cb && selectedIndices.includes(parseInt(cb.dataset.idx))) {
+                    row.style.transitionDuration = '80ms';
+                    row.style.backgroundColor = '#431407';
+                    setTimeout(() => {
+                        row.style.backgroundColor = '';
+                    }, 1400);
+                }
+            });
+            
+            // Show message
+            const origText = document.getElementById('statusText');
+            if (origText) {
+                // We can reuse status from other tab or just alert nicely
+            }
+        }
+        
+        function resetFeatureImportance() {
+            document.getElementById('permutedScore').textContent = '0.87';
+            document.getElementById('permutedBar').style.width = '87%';
+            
+            // re-render to reset checkboxes
+            renderFeatureImportanceList();
+        }
+        
+        // ==================== FEATURIZATION DEMO ====================
+        function computeDescriptors() {
+            const smiles = document.getElementById('smilesInput').value.trim() || "CCO";
+            const heavy = parseInt(document.getElementById('heavyAtoms').value) || 3;
+            const bonds = parseInt(document.getElementById('bondCount').value) || 2;
+            
+            const container = document.getElementById('descriptorResults');
+            container.innerHTML = '';
+            
+            // Simulated descriptors (inspired by RDKit/Mordred)
+            const descriptors = [
+                {name: "MolWt", value: (heavy * 12.5 + bonds * 1.2).toFixed(1), unit: "g/mol"},
+                {name: "LogP", value: (Math.random() * 3.5 + 0.8).toFixed(2), unit: ""},
+                {name: "TPSA", value: (heavy * 8 + bonds * 3).toFixed(1), unit: "Å²"},
+                {name: "NumHDonors", value: Math.max(0, Math.floor(bonds / 2)), unit: ""},
+                {name: "HeavyAtomCount", value: heavy, unit: ""},
+                {name: "NumRotatableBonds", value: bonds, unit: ""},
+                {name: "qed", value: (0.4 + Math.random() * 0.55).toFixed(3), unit: ""}
+            ];
+            
+            descriptors.forEach(d => {
+                const row = document.createElement('div');
+                row.className = `flex justify-between items-baseline py-[7px] px-1 border-b border-slate-700 last:border-none`;
+                row.innerHTML = `
+                    <div class="text-emerald-300 text-sm font-medium">${d.name}</div>
+                    <div class="font-mono text-sm">
+                        <span class="font-semibold">${d.value}</span> 
+                        <span class="text-xs text-slate-400">${d.unit}</span>
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+            
+            // Add note
+            const note = document.createElement('div');
+            note.className = `text-[10px] text-center text-slate-500 pt-3`;
+            note.innerHTML = `SMILES: <span class="font-mono">${smiles}</span> • Simüle edilmiş değerler`;
+            container.appendChild(note);
+        }
+        
+        function initializeFeatureImportance() {
+            renderFeatureImportanceList();
+            
+            // Set initial permuted to same as baseline
+            setTimeout(() => {
+                const permScore = document.getElementById('permutedScore');
+                const permBar = document.getElementById('permutedBar');
+                if (permScore) permScore.textContent = '0.87';
+                if (permBar) permBar.style.width = '87%';
+            }, 300);
+        }
+        
+        function initializeEverything() {
+            initializeTailwind();
+            
+            // Set default target
+            setTimeout(() => {
+                setDefaultTarget();
+            }, 120);
+            
+            // Initialize parameter labels
+            updateParamLabels();
+            
+            // Feature importance
+            initializeFeatureImportance();
+            
+            // Default featurization values
+            document.getElementById('smilesInput').value = "c1ccccc1O";
+            document.getElementById('heavyAtoms').value = "7";
+            document.getElementById('bondCount').value = "7";
+            
+            // Show first tab
+            document.getElementById('tab-content-0').classList.remove('hidden');
+            
+            // Easter egg: press "g" to generate random target
+            document.addEventListener('keydown', function(e) {
+                if (e.key.toLowerCase() === 'g' && currentTab === 0) {
+                    generateRandomTarget();
+                }
+            });
+            
+            // Initial message
+            console.log('%c[AMPL Sim] Molecular Modeling Simulation initialized successfully.', 'color:#64748b');
+        }
+        
+        // Boot app
+        window.onload = initializeEverything;
+    </script>
+</body>
+</html>
